@@ -120,34 +120,36 @@ class ShapeNetImageFolder(BaseDataset):
         return len(self.file_list)
 
 
+def shapenet_collate(batch):
+    if len(batch) > 1:
+        all_equal = True
+        for t in batch:
+            if t["length"] != batch[0]["length"]:
+                all_equal = False
+                break
+        points_orig, normals_orig = [], []
+        if not all_equal:
+            for t in batch:
+                pts, normal = t["points"], t["normals"]
+                length = pts.shape[0]
+                choices = np.resize(np.random.permutation(length), 3000)   # num_points
+                t["points"], t["normals"] = pts[choices], normal[choices]
+                points_orig.append(torch.from_numpy(pts))
+                normals_orig.append(torch.from_numpy(normal))
+            ret = default_collate(batch)
+            ret["points_orig"] = points_orig
+            ret["normals_orig"] = normals_orig
+            return ret
+    ret = default_collate(batch)
+    ret["points_orig"] = ret["points"]
+    ret["normals_orig"] = ret["normals"]
+    return ret
+
+
 def get_shapenet_collate(num_points):
     """
     :param num_points: This option will not be activated when batch size = 1
     :return: shapenet_collate function
     """
-    def shapenet_collate(batch):
-        if len(batch) > 1:
-            all_equal = True
-            for t in batch:
-                if t["length"] != batch[0]["length"]:
-                    all_equal = False
-                    break
-            points_orig, normals_orig = [], []
-            if not all_equal:
-                for t in batch:
-                    pts, normal = t["points"], t["normals"]
-                    length = pts.shape[0]
-                    choices = np.resize(np.random.permutation(length), num_points)
-                    t["points"], t["normals"] = pts[choices], normal[choices]
-                    points_orig.append(torch.from_numpy(pts))
-                    normals_orig.append(torch.from_numpy(normal))
-                ret = default_collate(batch)
-                ret["points_orig"] = points_orig
-                ret["normals_orig"] = normals_orig
-                return ret
-        ret = default_collate(batch)
-        ret["points_orig"] = ret["points"]
-        ret["normals_orig"] = ret["normals"]
-        return ret
 
     return shapenet_collate
