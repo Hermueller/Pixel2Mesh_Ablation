@@ -25,7 +25,7 @@ options.checkpoint_dir = "checkpoints"
 options.checkpoint = None
 
 options.dataset = edict()
-options.dataset.name = "shapenet"
+options.dataset.name = "shapenet_depth"
 options.dataset.subset_train = "train_tf"
 options.dataset.subset_eval = "test_tf"
 options.dataset.camera_f = [248., 248.]
@@ -170,6 +170,8 @@ def reset_options(options, args, phase='train'):
         if args.options:
             prefix = slugify(args.options) + "_"
         options.version = prefix + datetime.now().strftime('%m%d%H%M%S')  # ignore %Y
+    if not options.name:
+        options.name = "debugging"
     options.log_dir = os.path.join(options.log_dir, options.name)
     print('=> creating {}'.format(options.log_dir))
     os.makedirs(options.log_dir, exist_ok=True)

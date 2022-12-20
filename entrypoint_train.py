@@ -20,7 +20,8 @@ def parse_args():
     parser.add_argument('--checkpoint', help='checkpoint file', type=str)
     parser.add_argument('--num-epochs', help='number of epochs', type=int)
     parser.add_argument('--version', help='version of task (timestamp by default)', type=str)
-    parser.add_argument('--name', required=True, type=str)
+    parser.add_argument('--name', type=str)
+    parser.add_argument('--depth', type=bool)
 
     args = parser.parse_args()
 

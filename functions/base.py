@@ -11,6 +11,7 @@ from torch.utils.data.dataloader import default_collate
 import config
 from datasets.imagenet import ImageNet
 from datasets.shapenet import ShapeNet, get_shapenet_collate, ShapeNetImageFolder
+from datasets.shapenet_depth import ShapeNetDepth
 from functions.saver import CheckpointSaver
 
 
@@ -64,6 +65,9 @@ class CheckpointRunner(object):
         self.logger.info("Loading datasets: %s" % dataset.name)
         if dataset.name == "shapenet":
             return ShapeNet(config.SHAPENET_ROOT, dataset.subset_train if training else dataset.subset_eval,
+                            dataset.mesh_pos, dataset.normalization, dataset.shapenet)
+        elif dataset.name == "shapenet_depth":
+            return ShapeNetDepth(config.SHAPENET_ROOT, dataset.subset_train if training else dataset.subset_eval,
                             dataset.mesh_pos, dataset.normalization, dataset.shapenet)
         elif dataset.name == "shapenet_demo":
             return ShapeNetImageFolder(dataset.predict.folder, dataset.normalization, dataset.shapenet)
