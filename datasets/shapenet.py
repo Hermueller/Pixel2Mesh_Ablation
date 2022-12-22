@@ -7,6 +7,8 @@ import torch
 from PIL import Image
 from skimage import io, transform
 from torch.utils.data.dataloader import default_collate
+from collections import OrderedDict
+from datasets.preprocess.ext_models.depth_densenet_model import Model
 
 import config
 from datasets.base_dataset import BaseDataset
@@ -30,6 +32,14 @@ class ShapeNet(BaseDataset):
         self.normalization = normalization
         self.mesh_pos = mesh_pos
         self.resize_with_constant_border = shapenet_options.resize_with_constant_border
+        # depth model
+        checkpoint = torch.load('datasets/preprocess/ext_models/depth_densenet.pth')
+        new_state_dict = OrderedDict()
+        for k, v in checkpoint.items():
+            name = k[7:]
+            new_state_dict[name] = v
+        self.model = Model()
+        self.model.load_state_dict(new_state_dict)
 
     def __getitem__(self, index):
         if self.tensorflow:
@@ -60,6 +70,18 @@ class ShapeNet(BaseDataset):
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
         img_normalized = self.normalize_img(img) if self.normalization else img
+
+        # depth
+        img_depth = self.model(img.unsqueeze(0))[0, :, :, :]
+        img_depth = np.transpose(img_depth.detach().numpy(), (1, 2, 0))
+        if self.resize_with_constant_border:
+            img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE),
+                                         mode='constant', anti_aliasing=False)
+        else:
+            img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE))
+        img_depth = torch.from_numpy(np.transpose(img_depth, (2, 0, 1)))
+        img = torch.cat((img, img_depth), dim=0)
+        img_normalized = torch.cat((img_normalized, img_depth), dim=0)
 
         return {
             "images": img_normalized,

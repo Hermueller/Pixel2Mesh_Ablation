@@ -26,8 +26,8 @@ options.checkpoint = None
 
 options.dataset = edict()
 options.dataset.name = "shapenet"
-options.dataset.subset_train = "train_tf"
-options.dataset.subset_eval = "test_tf"
+options.dataset.subset_train = "train_tf_small"
+options.dataset.subset_eval = "test_tf_tiny"
 options.dataset.camera_f = [248., 248.]
 options.dataset.camera_c = [111.5, 111.5]
 options.dataset.mesh_pos = [0., 0., -0.8]
@@ -68,10 +68,10 @@ options.loss.weights.chamfer_opposite = 1.
 options.loss.weights.reconst = 0.
 
 options.train = edict()
-options.train.num_epochs = 50
-options.train.batch_size = 4
+options.train.num_epochs = 10
+options.train.batch_size = 32
 options.train.summary_steps = 50
-options.train.checkpoint_steps = 10000
+options.train.checkpoint_steps = 1000
 options.train.test_epochs = 1
 options.train.use_augmentation = True
 options.train.shuffle = True
@@ -79,7 +79,7 @@ options.train.shuffle = True
 options.test = edict()
 options.test.dataset = []
 options.test.summary_steps = 50
-options.test.batch_size = 4
+options.test.batch_size = 32
 options.test.shuffle = False
 options.test.weighted_mean = False
 
@@ -89,7 +89,7 @@ options.optim.adam_beta1 = 0.9
 options.optim.sgd_momentum = 0.9
 options.optim.lr = 5.0E-5
 options.optim.wd = 1.0E-6
-options.optim.lr_step = [30, 45]
+options.optim.lr_step = [30, 45]  # TODO: change this if we don't train 50 epochs. In case of 5: e.g. no step?
 options.optim.lr_factor = 0.1
 
 
