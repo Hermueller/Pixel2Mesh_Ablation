@@ -52,6 +52,7 @@ class ShapeNet(BaseDataset):
             pts, normals = data[:, :3], data[:, 3:]
             img = io.imread(img_path)
             img[np.where(img[:, :, 3] == 0)] = 255
+            img_org = img
             if self.resize_with_constant_border:
                 img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE),
                                        mode='constant', anti_aliasing=False)  # to match behavior of old versions
@@ -62,6 +63,7 @@ class ShapeNet(BaseDataset):
             label, filename = self.file_names[index].split("_", maxsplit=1)
             with open(os.path.join(self.file_root, "data", label, filename), "rb") as f:
                 data = pickle.load(f, encoding="latin1")
+            img_org = data[0].astype(np.float32)
             img, pts, normals = data[0].astype(np.float32) / 255.0, data[1][:, :3], data[1][:, 3:]
 
         pts -= np.array(self.mesh_pos)
@@ -69,23 +71,28 @@ class ShapeNet(BaseDataset):
         length = pts.shape[0]
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
-        img_normalized = self.normalize_img(img) if self.normalization else img
+        # img_normalized = self.normalize_img(img) if self.normalization else img
 
         # depth
-        img_depth = self.model(img.unsqueeze(0))[0, :, :, :]
-        img_depth = np.transpose(img_depth.detach().numpy(), (1, 2, 0))
+        img_org = img_org[:, :, :3].astype(np.float32)
+        img_org = torch.from_numpy(np.transpose(img_org, (2, 0, 1)))
+        imgCuda = img_org.unsqueeze(0).cuda()
+        self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
+        img_depth = self.model(imgCuda)[0, :, :, :]
+        img_depth = img_depth.permute(1, 2, 0)
+        img_depth = img_depth.detach().cpu()
         if self.resize_with_constant_border:
             img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE),
-                                         mode='constant', anti_aliasing=False)
+                                   mode='constant', anti_aliasing=False)  # to match behavior of old versions
         else:
             img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE))
-        img_depth = torch.from_numpy(np.transpose(img_depth, (2, 0, 1)))
+        img_depth = torch.from_numpy(img_depth).permute(2, 0, 1)
         img = torch.cat((img, img_depth), dim=0)
-        img_normalized = torch.cat((img_normalized, img_depth), dim=0)
+        img_normalized = self.normalize_img(img) if self.normalization else img
 
         return {
-            "images": img_normalized,
-            "images_orig": img,
+            "images": img_normalized.detach().numpy(),
+            "images_orig": img.detach().numpy(),
             "points": pts,
             "normals": normals,
             "labels": self.labels_map[label],
