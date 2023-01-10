@@ -122,3 +122,11 @@ checkpoints
 
 # IDEA
 .idea
+
+test-images/
+test-images-augmented
+test-images-augmented_depth
+test-images-background
+test-images-vanilla
+test-images-transparent/*.obj
+test-images-transparent/*.gif

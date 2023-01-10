@@ -102,7 +102,7 @@ class Predictor(CheckpointRunner):
                     color = random.choice(color_repo)
                     for _ in tqdm(range(360 // rot_degree), desc="Rendering sample %d" % i):
                         image = inputs["images_orig"][i].cpu().numpy()
-                        ret = image
+                        ret = image[:3, :, :]  # discard the depth channel which is not needed here
                         for k, vert in enumerate(verts):
                             vert = rot_matrix.dot((vert - mesh_center).T).T + mesh_center
                             rend_result = self.renderer.visualize_reconstruction(None,

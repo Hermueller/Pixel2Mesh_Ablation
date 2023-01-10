@@ -4,6 +4,7 @@ import pickle
 
 import numpy as np
 import torch
+import torchvision.transforms as T
 from PIL import Image
 from skimage import io, transform
 from torch.utils.data.dataloader import default_collate
@@ -58,12 +59,14 @@ class ShapeNet(BaseDataset):
                                        mode='constant', anti_aliasing=False)  # to match behavior of old versions
             else:
                 img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE))
+            img_org_size = img
             img = img[:, :, :3].astype(np.float32)
         else:
             label, filename = self.file_names[index].split("_", maxsplit=1)
             with open(os.path.join(self.file_root, "data", label, filename), "rb") as f:
                 data = pickle.load(f, encoding="latin1")
             img_org = data[0].astype(np.float32)
+            img_org_size = img_org
             img, pts, normals = data[0].astype(np.float32) / 255.0, data[1][:, :3], data[1][:, 3:]
 
         pts -= np.array(self.mesh_pos)
@@ -71,14 +74,37 @@ class ShapeNet(BaseDataset):
         length = pts.shape[0]
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
-        # img_normalized = self.normalize_img(img) if self.normalization else img
+
+        # adjust brightness, noise, blur, etc. for Ablation
+        """adj = T.ToPILImage()
+        adjT = T.ToTensor()
+        img = adjT(T.functional.adjust_brightness(adj(img), brightness_factor=1.6))"""
+
+        # adjust saturation
+        """adj = T.ToPILImage()
+        adjT = T.ToTensor()
+        img = adjT(T.functional.adjust_saturation(adj(img), 5))"""
+
+        # add salt-and-pepper noise
+        """rnd_tensor = torch.rand(img.shape[1], img.shape[2])
+        img[0][rnd_tensor >= (1-0.005)] = 250
+        img[0][rnd_tensor <= 0.005] = 5
+        img[1][rnd_tensor >= (1 - 0.005)] = 250
+        img[1][rnd_tensor <= 0.005] = 5
+        img[2][rnd_tensor >= (1 - 0.005)] = 250
+        img[2][rnd_tensor <= 0.005] = 5"""
+
+        # add random noise (+/- the real value)
+        """rnd_tensor = torch.rand(img.shape[0], img.shape[1], img.shape[2])
+        rnd_noise = torch.rand(img.shape[0], img.shape[1], img.shape[2])
+        img[rnd_tensor >= (1 - 0.1)] += (rnd_noise[rnd_tensor >= (1 - 0.1)] - 0.5)*10"""
 
         # depth
-        img_org = img_org[:, :, :3].astype(np.float32)
-        img_org = torch.from_numpy(np.transpose(img_org, (2, 0, 1)))
-        imgCuda = img_org.unsqueeze(0).cuda()
+        img_org = img_org.astype(np.float32)
+        img_cuda = torch.from_numpy(np.transpose(img_org[:, :, :3], (2, 0, 1)))
+        img_cuda = img_cuda.unsqueeze(0).cuda()
         self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
-        img_depth = self.model(imgCuda)[0, :, :, :]
+        img_depth = self.model(img_cuda)[0, :, :, :]
         img_depth = img_depth.permute(1, 2, 0)
         img_depth = img_depth.detach().cpu()
         if self.resize_with_constant_border:
@@ -86,8 +112,14 @@ class ShapeNet(BaseDataset):
                                    mode='constant', anti_aliasing=False)  # to match behavior of old versions
         else:
             img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE))
+
+        # TODO: same as img[np.where(img[:, :, 3] == 0)] = 255 before.
+        #       discard the depth values that are not from the object itself.
+        img_depth[np.where(img_org_size[:, :, 3] == 0)] = 0.000001
+
         img_depth = torch.from_numpy(img_depth).permute(2, 0, 1)
         img = torch.cat((img, img_depth), dim=0)
+
         img_normalized = self.normalize_img(img) if self.normalization else img
 
         return {
@@ -121,6 +153,14 @@ class ShapeNetImageFolder(BaseDataset):
                 self.file_list.append(file_path)
             except (IOError, ValueError):
                 print("=> Ignoring %s because it's not a valid image" % file_path)
+        # depth model
+        checkpoint = torch.load('datasets/preprocess/ext_models/depth_densenet.pth')
+        new_state_dict = OrderedDict()
+        for k, v in checkpoint.items():
+            name = k[7:]
+            new_state_dict[name] = v
+        self.model = Model()
+        self.model.load_state_dict(new_state_dict)
 
     def __getitem__(self, item):
         img_path = self.file_list[item]
@@ -129,14 +169,36 @@ class ShapeNetImageFolder(BaseDataset):
         if img.shape[2] > 3:  # has alpha channel
             img[np.where(img[:, :, 3] == 0)] = 255
 
+        img_org = img
         if self.resize_with_constant_border:
             img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE),
                                    mode='constant', anti_aliasing=False)
         else:
             img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE))
+        img_org_size = img
         img = img[:, :, :3].astype(np.float32)
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+
+        # depth
+        img_org = img_org.astype(np.float32)
+        img_cuda = torch.from_numpy(np.transpose(img_org[:, :, :3], (2, 0, 1)))
+        img_cuda = img_cuda.unsqueeze(0).cuda()
+        self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
+        img_depth = self.model(img_cuda)[0, :, :, :]
+        img_depth = img_depth.permute(1, 2, 0)
+        img_depth = img_depth.detach().cpu()
+        if self.resize_with_constant_border:
+            img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE),
+                                         mode='constant', anti_aliasing=False)  # to match behavior of old versions
+        else:
+            img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE))
+
+        img_depth[np.where(img_org_size[:, :, 3] == 0)] = 0.000001
+
+        img_depth = torch.from_numpy(img_depth).permute(2, 0, 1)
+        img = torch.cat((img, img_depth), dim=0)
+
         img_normalized = self.normalize_img(img) if self.normalization else img
 
         return {

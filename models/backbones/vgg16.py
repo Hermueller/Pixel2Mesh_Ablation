@@ -76,6 +76,7 @@ class VGG16TensorflowAlign(nn.Module):
 class VGG16P2M(nn.Module):
 
     def __init__(self, n_classes_input=4, pretrained=False):
+        # n_classes_input should be 4 if depth
         super(VGG16P2M, self).__init__()
 
         self.features_dim = 960
@@ -160,6 +161,7 @@ class VGG16P2M(nn.Module):
 class VGG16Recons(nn.Module):
 
     def __init__(self, input_dim=512, image_channel=4):
+        # image_channel should be 4 if depth
         super(VGG16Recons, self).__init__()
 
         self.conv_1 = nn.ConvTranspose2d(input_dim, 256, kernel_size=2, stride=2, padding=0)  # 7 -> 14

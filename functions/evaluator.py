@@ -156,6 +156,7 @@ class Evaluator(CheckpointRunner):
             scalar = val
             if isinstance(val, AverageMeter):
                 scalar = val.avg
+            scalar = scalar * 13  # because we only use 1 class, and changing the calculation to 1 class is more code
             self.logger.info("Test [%06d] %s: %.6f" % (self.total_step_count, key, scalar))
             self.summary_writer.add_scalar("eval_" + key, scalar, self.total_step_count + 1)
 
