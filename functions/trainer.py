@@ -125,6 +125,7 @@ class Trainer(CheckpointRunner):
 
             # Iterate over all batches in an epoch
             for step, batch in enumerate(train_data_loader):
+        
                 # Send input to GPU
                 batch = {k: v.cuda() if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
 

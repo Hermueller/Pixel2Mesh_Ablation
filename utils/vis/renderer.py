@@ -114,7 +114,8 @@ class MeshRenderer(object):
                                            camera_k, dist_coeffs, rvec, tvec, **kwargs)
         pred_pc, _ = self._render_pointcloud(coord, image.shape[2], image.shape[1],
                                              camera_k, dist_coeffs, rvec, tvec, **kwargs)
-        return np.concatenate((image, gt_pc, pred_pc, mesh), 2)
+        
+        return np.concatenate((image[:3, :, :], gt_pc, pred_pc, mesh), 2)
 
     def p2m_batch_visualize(self, batch_input, batch_output, faces, atmost=3):
         """

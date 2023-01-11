@@ -11,7 +11,7 @@ from torch.utils.data.dataloader import default_collate
 import config
 from datasets.imagenet import ImageNet
 from datasets.shapenet import ShapeNet, get_shapenet_collate, ShapeNetImageFolder
-from datasets.shapenet_depth import ShapeNetDepth
+from datasets.shapenet_depth import ShapeNetDepth, get_shapenet_depth_collate
 from functions.saver import CheckpointSaver
 
 
@@ -76,8 +76,8 @@ class CheckpointRunner(object):
         raise NotImplementedError("Unsupported dataset")
 
     def load_collate_fn(self, dataset, training):
-        if dataset.name == "shapenet":
-            return get_shapenet_collate(dataset.shapenet.num_points)
+        if dataset.name == "shapenet_depth":
+            return get_shapenet_depth_collate(dataset.shapenet.num_points)
         else:
             return default_collate
 
