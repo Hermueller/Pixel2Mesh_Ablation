@@ -14,7 +14,7 @@ options = edict()
 
 options.name = 'p2m'
 options.version = None
-options.num_workers = 1
+options.num_workers = 0
 options.num_gpus = 1
 options.pin_memory = True
 
@@ -26,8 +26,8 @@ options.checkpoint = None
 
 options.dataset = edict()
 options.dataset.name = "shapenet"
-options.dataset.subset_train = "train_tf"
-options.dataset.subset_eval = "test_tf"
+options.dataset.subset_train = "train_tf_small"
+options.dataset.subset_eval = "test_tf_tiny"
 options.dataset.camera_f = [248., 248.]
 options.dataset.camera_c = [111.5, 111.5]
 options.dataset.mesh_pos = [0., 0., -0.8]
@@ -68,10 +68,10 @@ options.loss.weights.chamfer_opposite = 1.
 options.loss.weights.reconst = 0.
 
 options.train = edict()
-options.train.num_epochs = 50
-options.train.batch_size = 4
+options.train.num_epochs = 10
+options.train.batch_size = 48
 options.train.summary_steps = 50
-options.train.checkpoint_steps = 10000
+options.train.checkpoint_steps = 1000
 options.train.test_epochs = 1
 options.train.use_augmentation = True
 options.train.shuffle = True
@@ -79,7 +79,7 @@ options.train.shuffle = True
 options.test = edict()
 options.test.dataset = []
 options.test.summary_steps = 50
-options.test.batch_size = 4
+options.test.batch_size = 32
 options.test.shuffle = False
 options.test.weighted_mean = False
 

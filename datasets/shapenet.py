@@ -79,9 +79,20 @@ class ShapeNet(BaseDataset):
 
         img_for_normals_gpu = img_for_normals.to(torch.device("cuda:0"))
         img_surface_normals = img_to_surface_normals(self.surfaceNormalModel, img_for_normals_gpu)
-        print("Shape SN: ", img_surface_normals.shape)
         img_surface_normals = img_surface_normals.squeeze()
-        print("Shape SN: ", img_surface_normals.shape)
+
+        # print(img_surface_normals)
+
+        # print("Shape", img_surface_normals.shape)
+        # means = []
+        # for i in range(3):
+        #     data = img_surface_normals[:,:,i]
+        #     print(data.shape)
+
+        #     means.append(np.mean(np.mean(data, 0), 0))
+        
+        # print(means)
+        # # print(np.mean(mean, 1))
 
         #resize surface normal output to fit other model's size 
         if self.resize_with_constant_border:
@@ -89,14 +100,12 @@ class ShapeNet(BaseDataset):
                                    mode='constant', anti_aliasing=False)  # to match behavior of old versions
         else:
             img_surface_normals = transform.resize(img_surface_normals, (config.IMG_SIZE, config.IMG_SIZE))
-        img_surface_normals_tensor = torch.from_numpy(img_surface_normals).permute(2, 0, 1)
+        img_surface_normals_tensor = torch.from_numpy(img_surface_normals).type(torch.FloatTensor).permute(2, 0, 1)
 
-        print("Shape SN: ", img_surface_normals_tensor.shape)
-        print("Shape Image: ", img.shape)
 
         #combine rgb + surface normal data
-        img = torch.cat((img, img_surface_normals_tensor), dim=0)
-        img_normalized = self.normalize_img(img) if self.normalization else img
+        img_cat_norm = self.normalize_img(img) if self.normalization else img
+        img_normalized = torch.cat((img_cat_norm, img_surface_normals_tensor), dim=0)
 
         return {
             "images": img_normalized,

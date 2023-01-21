@@ -19,11 +19,11 @@ def img_to_surface_normals(model, rgbImage):
 
     img = unnormalize(img[0, ...])
 
-    pred_norm_rgb = ((pred_norm + 1) * 0.5) * 255
-    pred_norm_rgb = np.clip(pred_norm_rgb, a_min=0, a_max=255)
-    pred_norm_rgb = pred_norm_rgb.astype(np.uint8)   
+    # pred_norm_rgb = ((pred_norm + 1) * 0.5) * 255
+    # pred_norm_rgb = np.clip(pred_norm_rgb, a_min=0, a_max=255)
+    # pred_norm_rgb = pred_norm_rgb.astype(np.uint8)   
 
-    return pred_norm_rgb
+    return ((pred_norm + 1) * 0.5) 
 
 def load_checkpoint_on_device(fpath, device):
     model = NNET().to(device)
