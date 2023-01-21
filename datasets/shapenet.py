@@ -7,10 +7,11 @@ import torch
 from PIL import Image
 from skimage import io, transform
 from torch.utils.data.dataloader import default_collate
+from torchvision import transforms
 
 import config
 from datasets.base_dataset import BaseDataset
-
+from models.surface_normals.NNETUtils import *
 
 class ShapeNet(BaseDataset):
     """
@@ -31,6 +32,9 @@ class ShapeNet(BaseDataset):
         self.mesh_pos = mesh_pos
         self.resize_with_constant_border = shapenet_options.resize_with_constant_border
 
+        # model for surface normals
+        self.surfaceNormalModel = load_checkpoint_on_device("datasets/scannet.pt", torch.device("cuda:0"))
+
     def __getitem__(self, index):
         if self.tensorflow:
             filename = self.file_names[index][17:]
@@ -42,16 +46,20 @@ class ShapeNet(BaseDataset):
             pts, normals = data[:, :3], data[:, 3:]
             img = io.imread(img_path)
             img[np.where(img[:, :, 3] == 0)] = 255
+            img_org = img
             if self.resize_with_constant_border:
                 img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE),
                                        mode='constant', anti_aliasing=False)  # to match behavior of old versions
             else:
                 img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE))
+            img_org_size = img
             img = img[:, :, :3].astype(np.float32)
         else:
             label, filename = self.file_names[index].split("_", maxsplit=1)
             with open(os.path.join(self.file_root, "data", label, filename), "rb") as f:
                 data = pickle.load(f, encoding="latin1")
+            img_org = data[0].astype(np.float32)
+            img_org_size = img_org
             img, pts, normals = data[0].astype(np.float32) / 255.0, data[1][:, :3], data[1][:, 3:]
 
         pts -= np.array(self.mesh_pos)
@@ -59,6 +67,35 @@ class ShapeNet(BaseDataset):
         length = pts.shape[0]
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+
+        # surface normals
+        img_org_rgb = img_org[:,:,:3]   #remove alpha channel
+        img_for_normals = transform.resize(img_org_rgb, (640, 480)) #img_org.convert("RGB").resize(size=(640, 480), resample=Image.BILINEAR)
+        img_for_normals = np.array(img_for_normals).astype(np.float32) / 255.0
+        img_for_normals = torch.from_numpy(img_for_normals).permute(2, 0, 1)
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        img_for_normals = normalize(img_for_normals)
+        img_for_normals = img_for_normals[None, :]  #add dimension in front
+
+        img_for_normals_gpu = img_for_normals.to(torch.device("cuda:0"))
+        img_surface_normals = img_to_surface_normals(self.surfaceNormalModel, img_for_normals_gpu)
+        print("Shape SN: ", img_surface_normals.shape)
+        img_surface_normals = img_surface_normals.squeeze()
+        print("Shape SN: ", img_surface_normals.shape)
+
+        #resize surface normal output to fit other model's size 
+        if self.resize_with_constant_border:
+            img_surface_normals = transform.resize(img_surface_normals, (config.IMG_SIZE, config.IMG_SIZE),
+                                   mode='constant', anti_aliasing=False)  # to match behavior of old versions
+        else:
+            img_surface_normals = transform.resize(img_surface_normals, (config.IMG_SIZE, config.IMG_SIZE))
+        img_surface_normals_tensor = torch.from_numpy(img_surface_normals).permute(2, 0, 1)
+
+        print("Shape SN: ", img_surface_normals_tensor.shape)
+        print("Shape Image: ", img.shape)
+
+        #combine rgb + surface normal data
+        img = torch.cat((img, img_surface_normals_tensor), dim=0)
         img_normalized = self.normalize_img(img) if self.normalization else img
 
         return {

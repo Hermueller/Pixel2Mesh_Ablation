@@ -115,7 +115,7 @@ class Trainer(CheckpointRunner):
             # Create a new data loader for every epoch
             train_data_loader = DataLoader(self.dataset,
                                            batch_size=self.options.train.batch_size * self.options.num_gpus,
-                                           num_workers=self.options.num_workers,
+                                           #num_workers=self.options.num_workers,
                                            pin_memory=self.options.pin_memory,
                                            shuffle=self.options.train.shuffle,
                                            collate_fn=self.dataset_collate_fn)
