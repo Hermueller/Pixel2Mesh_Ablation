@@ -13,17 +13,17 @@ def img_to_surface_normals(model, rgbImage):
     pred_kappa = norm_out[:, 3:, :, :]
 
     # to numpy arrays
-    img = rgbImage.detach().cpu().permute(0, 2, 3, 1).numpy()                    # (B, H, W, 3)
+    # img = rgbImage.detach().cpu().permute(0, 2, 3, 1).numpy()                    # (B, H, W, 3)
     pred_norm = pred_norm.detach().cpu().permute(0, 2, 3, 1).numpy()        # (B, H, W, 3)
     pred_kappa = pred_kappa.detach().cpu().permute(0, 2, 3, 1).numpy()
 
-    img = unnormalize(img[0, ...])
+    # img = unnormalize(img[0, ...])
 
     # pred_norm_rgb = ((pred_norm + 1) * 0.5) * 255
     # pred_norm_rgb = np.clip(pred_norm_rgb, a_min=0, a_max=255)
     # pred_norm_rgb = pred_norm_rgb.astype(np.uint8)   
 
-    return ((pred_norm + 1) * 0.5) 
+    return ((pred_norm + 1) * 0.5)[0]
 
 def load_checkpoint_on_device(fpath, device):
     model = NNET().to(device)
