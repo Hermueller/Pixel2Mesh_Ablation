@@ -11,6 +11,7 @@ from torch.utils.data.dataloader import default_collate
 from collections import OrderedDict
 from models.i2d import I2D
 
+import matplotlib.pyplot as plt
 
 import config
 from datasets.base_dataset import BaseDataset
@@ -39,7 +40,6 @@ class ShapeNetDepth(BaseDataset):
         self.resize_with_constant_border = shapenet_options.resize_with_constant_border
         
         self.model = I2D()
-        self.model.load_state_dict(torch.load("{}/i2d/fyn_model.pt".format(self.file_root), map_location='cpu'))
         print("i2d model loaded")
 
     def __getitem__(self, index):
@@ -104,7 +104,12 @@ class ShapeNetDepth(BaseDataset):
         img_cuda = torch.from_numpy(np.transpose(img_org[:, :, :3], (2, 0, 1)))
         img_cuda = img_cuda.unsqueeze(0).cuda()
         self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
+        self.model.load_state_dict(torch.load("{}/i2d/fyn_model.pt".format(self.file_root), map_location='cpu'))
         img_depth = self.model(img_cuda)[0, :, :, :]
+
+        plt.imshow(img_depth[0,:,:].detach().cpu().numpy())
+        plt.show()
+
         img_depth = img_depth.permute(1, 2, 0)
         img_depth = img_depth.detach().cpu()
         if self.resize_with_constant_border:
