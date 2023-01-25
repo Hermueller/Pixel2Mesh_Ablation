@@ -103,11 +103,42 @@ class P2MLoss(nn.Module):
             lap_loss += lap_const[i] * lap
             move_loss += lap_const[i] * move
 
-        loss = chamfer_loss + image_loss * self.options.weights.reconst + \
+        loss = chamfer_loss + \
+               image_loss * self.options.weights.reconst + \
                self.options.weights.laplace * lap_loss + \
                self.options.weights.move * move_loss + \
                self.options.weights.edge * edge_loss + \
                self.options.weights.normal * normal_loss
+
+        # loss = chamfer_loss + \
+        #        image_loss * self.options.weights.reconst + \
+        #        self.options.weights.laplace * lap_loss + \
+        #        self.options.weights.move * move_loss + \
+        #        self.options.weights.edge * edge_loss 
+
+        # loss = chamfer_loss + \
+        #        image_loss * self.options.weights.reconst + \
+        #        self.options.weights.laplace * lap_loss + \
+        #        self.options.weights.move * move_loss + \
+        #        self.options.weights.normal * normal_loss
+        
+        # loss = chamfer_loss + \
+        #        image_loss * self.options.weights.reconst + \
+        #        self.options.weights.laplace * lap_loss + \
+        #        self.options.weights.edge * edge_loss + \
+        #        self.options.weights.normal * normal_loss
+
+        # loss = chamfer_loss + \
+        #        image_loss * self.options.weights.reconst + \
+        #        self.options.weights.move * move_loss + \
+        #        self.options.weights.edge * edge_loss + \
+        #        self.options.weights.normal * normal_loss
+
+        # loss = chamfer_loss + \
+        #        self.options.weights.laplace * lap_loss + \
+        #        self.options.weights.move * move_loss + \
+        #        self.options.weights.edge * edge_loss + \
+        #        self.options.weights.normal * normal_loss
 
         loss = loss * self.options.weights.constant
 
