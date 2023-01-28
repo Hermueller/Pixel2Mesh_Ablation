@@ -7,7 +7,7 @@ import config
 
 class VGG16TensorflowAlign(nn.Module):
 
-    def __init__(self, n_classes_input=3):
+    def __init__(self, n_classes_input=6):
         super(VGG16TensorflowAlign, self).__init__()
 
         self.features_dim = 960

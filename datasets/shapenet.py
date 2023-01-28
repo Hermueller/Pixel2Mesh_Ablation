@@ -73,9 +73,6 @@ class ShapeNet(BaseDataset):
         img_resized = transform.resize(img_org, (480, 640), mode='constant', anti_aliasing=True) #img_org.convert("RGB").resize(size=(640, 480), resample=Image.BILINEAR)
         img_resized_rgb = img_resized[:,:,:3]
         
-        # plt.imshow(img_resized_rgb)
-        # plt.show()
-        
         img_batch = torch.from_numpy(img_resized_rgb[None, :]).permute(0, 3, 1, 2).type(torch.FloatTensor)
         img_batch_gpu = img_batch.to(torch.device("cuda:0"))
         img_normals = img_to_surface_normals(self.surfaceNormalModel, img_batch_gpu)
@@ -84,17 +81,6 @@ class ShapeNet(BaseDataset):
         img_normals[:,:,0][np.where(img_resized[:, :, 3] == 0)] = 0.000001
         img_normals[:,:,1][np.where(img_resized[:, :, 3] == 0)] = 0.000001
         img_normals[:,:,2][np.where(img_resized[:, :, 3] == 0)] = 0.000001
-
-        # pred_norm_rgb = img_normals * 255
-        # pred_norm_rgb = np.clip(pred_norm_rgb, a_min=0, a_max=255)
-        # pred_norm_rgb = pred_norm_rgb.astype(np.uint8)     
-        
-        # plt.title("output img")
-        # plt.imshow(pred_norm_rgb)
-        # plt.show()
-        
-        # plt.imsave("C:\\Users\\phste\\Desktop\\img-norm.png", pred_norm_rgb)
-        # plt.imsave("C:\\Users\\phste\\Desktop\\img-rgb.png", img_resized)
 
         #resize surface normal output to fit other model's size 
         if self.resize_with_constant_border:
@@ -133,6 +119,10 @@ class ShapeNetImageFolder(BaseDataset):
         self.normalization = normalization
         self.resize_with_constant_border = shapenet_options.resize_with_constant_border
         self.file_list = []
+
+        self.surfaceNormalModel = load_checkpoint_on_device("datasets/scannet.pt", torch.device("cuda:0"))
+
+
         for fl in os.listdir(folder):
             file_path = os.path.join(folder, fl)
             # check image before hand
@@ -147,6 +137,7 @@ class ShapeNetImageFolder(BaseDataset):
     def __getitem__(self, item):
         img_path = self.file_list[item]
         img = io.imread(img_path)
+        img_org = io.imread(img_path)
 
         if img.shape[2] > 3:  # has alpha channel
             img[np.where(img[:, :, 3] == 0)] = 255
@@ -158,8 +149,35 @@ class ShapeNetImageFolder(BaseDataset):
             img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE))
         img = img[:, :, :3].astype(np.float32)
 
+        img_resized = transform.resize(img_org, (480, 640), mode='constant', anti_aliasing=True) #img_org.convert("RGB").resize(size=(640, 480), resample=Image.BILINEAR)
+        img_resized_rgb = img_resized[:,:,:3]
+        
+        img_batch = torch.from_numpy(img_resized_rgb[None, :]).permute(0, 3, 1, 2).type(torch.FloatTensor)
+        img_batch_gpu = img_batch.to(torch.device("cuda:0"))
+        img_normals = img_to_surface_normals(self.surfaceNormalModel, img_batch_gpu)
+
+        #remove data from objects surroundings
+        img_normals[:,:,0][np.where(img_resized[:, :, 3] == 0)] = 0.000001
+        img_normals[:,:,1][np.where(img_resized[:, :, 3] == 0)] = 0.000001
+        img_normals[:,:,2][np.where(img_resized[:, :, 3] == 0)] = 0.000001
+
+        #resize surface normal output to fit other model's size 
+        if self.resize_with_constant_border:
+            img_normals = transform.resize(img_normals, (config.IMG_SIZE, config.IMG_SIZE),
+                                   mode='constant', anti_aliasing=False)  # to match behavior of old versions
+        else:
+            img_normals = transform.resize(img_normals, (config.IMG_SIZE, config.IMG_SIZE))
+        
+        #permute dimensions to fit other model
+        img_surface_normals_tensor = torch.from_numpy(img_normals).type(torch.FloatTensor).permute(2, 0, 1)
+
+        #img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+        #img_normalized = self.normalize_img(img) if self.normalization else img
+
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
-        img_normalized = self.normalize_img(img) if self.normalization else img
+
+        img_cat_norm = self.normalize_img(img) if self.normalization else img
+        img_normalized = torch.cat((img_cat_norm, img_surface_normals_tensor), dim=0)
 
         return {
             "images": img_normalized,
