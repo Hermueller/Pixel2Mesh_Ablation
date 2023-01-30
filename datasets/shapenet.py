@@ -4,11 +4,12 @@ import pickle
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageEnhance
 from skimage import io, transform
 from torch.utils.data.dataloader import default_collate
 from torchvision import transforms
 import matplotlib.pyplot as plt
+import torchvision.transforms as T
 
 import config
 from datasets.base_dataset import BaseDataset
@@ -53,7 +54,6 @@ class ShapeNet(BaseDataset):
                                        mode='constant', anti_aliasing=False)  # to match behavior of old versions
             else:
                 img = transform.resize(img, (config.IMG_SIZE, config.IMG_SIZE))
-            img = img[:, :, :3].astype(np.float32)
         else:
             label, filename = self.file_names[index].split("_", maxsplit=1)
             with open(os.path.join(self.file_root, "data", label, filename), "rb") as f:
@@ -64,6 +64,50 @@ class ShapeNet(BaseDataset):
         pts -= np.array(self.mesh_pos)
         assert pts.shape[0] == normals.shape[0]
         length = pts.shape[0]
+
+        from skimage import exposure
+
+        img = img[:,:,:3]
+
+        # **********************
+        # Robustness tests
+        # **********************
+
+        # Brightness
+        # toPilImage = T.ToPILImage()
+        # toTensor = T.ToTensor()
+        
+        # img_t = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+        # img = toTensor(T.functional.adjust_brightness(toPilImage(img_t), brightness_factor=1.6))
+        # img = img.permute(1,2,0).numpy()
+
+        # img_org_t = torch.from_numpy(np.transpose(img_org, (2, 0, 1)))
+        # img_org = toTensor(T.functional.adjust_brightness(toPilImage(img_org_t), brightness_factor=1.6))
+        # img_org = img_org.permute(1,2,0)
+
+        #Saturation
+        # toPilImage = T.ToPILImage()
+        # toTensor = T.ToTensor()
+        
+        # img_t = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+        # img = toTensor(T.functional.adjust_saturation(toPilImage(img_t), 5))
+        # img = img.permute(1,2,0).numpy()
+
+        # img_org_t = torch.from_numpy(np.transpose(img_org, (2, 0, 1)))
+        # img_org = toTensor(T.functional.adjust_saturation(toPilImage(img_org_t), 5))
+        # img_org = img_org.permute(1,2,0)
+
+        #Gaussian blur
+        # toPilImage = T.ToPILImage()
+        # toTensor = T.ToTensor()
+        
+        # img_t = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+        # img = toTensor(T.functional.gaussian_blur(toPilImage(img_t), 5))
+        # img = img.permute(1,2,0).numpy()
+
+        # img_org_t = torch.from_numpy(np.transpose(img_org, (2, 0, 1)))
+        # img_org = toTensor(T.functional.gaussian_blur(toPilImage(img_org_t), 5))
+        # img_org = img_org.permute(1,2,0)
 
         # **********************
         # surface normals
@@ -93,7 +137,7 @@ class ShapeNet(BaseDataset):
         img_surface_normals_tensor = torch.from_numpy(img_normals).type(torch.FloatTensor).permute(2, 0, 1)
 
         #combine rgb + surface normal data
-        img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+        img = torch.from_numpy(np.transpose(img.astype(np.float32), (2, 0, 1)))
 
         img_cat_norm = self.normalize_img(img) if self.normalization else img
         img_normalized = torch.cat((img_cat_norm, img_surface_normals_tensor), dim=0)
