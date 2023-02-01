@@ -26,8 +26,8 @@ options.checkpoint = None
 
 options.dataset = edict()
 options.dataset.name = "shapenet"
-options.dataset.subset_train = "train_tiny_tf"
-options.dataset.subset_eval = "test_tiny_tf"
+options.dataset.subset_train = "train_tf_small"
+options.dataset.subset_eval = "test_tf_tiny"
 options.dataset.camera_f = [248., 248.]
 options.dataset.camera_c = [111.5, 111.5]
 options.dataset.mesh_pos = [0., 0., -0.8]

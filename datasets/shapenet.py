@@ -7,7 +7,7 @@ import torch
 from PIL import Image
 from skimage import io, transform
 from torch.utils.data.dataloader import default_collate
-
+import torchvision.transforms as T
 import config
 from datasets.base_dataset import BaseDataset
 
@@ -57,6 +57,14 @@ class ShapeNet(BaseDataset):
         pts -= np.array(self.mesh_pos)
         assert pts.shape[0] == normals.shape[0]
         length = pts.shape[0]
+
+        #Gaussian blur
+        toPilImage = T.ToPILImage()
+        toTensor = T.ToTensor()
+        
+        img_t = torch.from_numpy(np.transpose(img, (2, 0, 1)))
+        img = toTensor(T.functional.gaussian_blur(toPilImage(img_t), 5))
+        img = img.permute(1,2,0).numpy()
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
         img_normalized = self.normalize_img(img) if self.normalization else img
