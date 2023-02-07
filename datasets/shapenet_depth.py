@@ -104,7 +104,7 @@ class ShapeNetDepth(BaseDataset):
         img_cuda = torch.from_numpy(np.transpose(img_org[:, :, :3], (2, 0, 1)))
         img_cuda = img_cuda.unsqueeze(0).cuda()
         self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
-        self.model.load_state_dict(torch.load("{}/i2d/fyn_model.pt".format(self.file_root), map_location='cpu'))
+        self.model.load_state_dict(torch.load("datasets/preprocess/ext_models/fyn_model.pt", map_location='cpu'))
         img_depth = self.model(img_cuda)[0, :, :, :]
 
         # plt.imshow(img_depth[0,:,:].detach().cpu().numpy())
@@ -160,7 +160,7 @@ class ShapeNetDepthImageFolder(BaseDataset):
                 print("=> Ignoring %s because it's not a valid image" % file_path)
         # depth model
         self.model = I2D()
-        self.model.load_state_dict(torch.load("datasets/data/shapenet/i2d/fyn_model.pt"))
+        self.model.load_state_dict(torch.load("datasets/preprocess/ext_models/fyn_model.pt"))
 
     def __getitem__(self, item):
         img_path = self.file_list[item]
