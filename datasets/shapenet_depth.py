@@ -107,8 +107,8 @@ class ShapeNetDepth(BaseDataset):
         self.model.load_state_dict(torch.load("{}/i2d/fyn_model.pt".format(self.file_root), map_location='cpu'))
         img_depth = self.model(img_cuda)[0, :, :, :]
 
-        plt.imshow(img_depth[0,:,:].detach().cpu().numpy())
-        plt.show()
+        # plt.imshow(img_depth[0,:,:].detach().cpu().numpy())
+        # plt.show()
 
         img_depth = img_depth.permute(1, 2, 0)
         img_depth = img_depth.detach().cpu()
@@ -141,7 +141,7 @@ class ShapeNetDepth(BaseDataset):
         return len(self.file_names)
 
 
-class ShapeNetImageFolder(BaseDataset):
+class ShapeNetDepthImageFolder(BaseDataset):
 
     def __init__(self, folder, normalization, shapenet_options):
         super().__init__()
@@ -159,13 +159,8 @@ class ShapeNetImageFolder(BaseDataset):
             except (IOError, ValueError):
                 print("=> Ignoring %s because it's not a valid image" % file_path)
         # depth model
-        checkpoint = torch.load('datasets/preprocess/ext_models/depth_resnet.pth')
-        new_state_dict = OrderedDict()
-        for k, v in checkpoint.items():
-            name = k[7:]
-            new_state_dict[name] = v
         self.model = I2D()
-        self.model.load_state_dict(new_state_dict)
+        self.model.load_state_dict(torch.load("datasets/data/shapenet/i2d/fyn_model.pt"))
 
     def __getitem__(self, item):
         img_path = self.file_list[item]
@@ -190,12 +185,14 @@ class ShapeNetImageFolder(BaseDataset):
         img_cuda = torch.from_numpy(np.transpose(img_org[:, :, :3], (2, 0, 1)))
         img_cuda = img_cuda.unsqueeze(0).cuda()
         self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
+        self.model.load_state_dict(torch.load("datasets/preprocess/ext_models/fyn_model.pt", map_location='cpu'))
         img_depth = self.model(img_cuda)[0, :, :, :]
+        
         img_depth = img_depth.permute(1, 2, 0)
         img_depth = img_depth.detach().cpu()
         if self.resize_with_constant_border:
             img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE),
-                                         mode='constant', anti_aliasing=False)  # to match behavior of old versions
+                                   mode='constant', anti_aliasing=False)  # to match behavior of old versions
         else:
             img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE))
 
@@ -242,8 +239,8 @@ def shapenet_depth_collate(batch):
             return ret
 
     ret = default_collate(batch)
-    ret["points_orig"] = ret["points"]
-    ret["normals_orig"] = ret["normals"]
+    ret["points_orig"] = ret["points"] | []
+    ret["normals_orig"] = ret["normals"] | []
     return ret
 
 

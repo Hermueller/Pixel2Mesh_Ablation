@@ -23,6 +23,7 @@ options.log_level = "info"
 options.summary_dir = "summary"
 options.checkpoint_dir = "checkpoints"
 options.checkpoint = None
+#options.checkpoint = "checkpoints/testing-depth-1/0122113130/007940_000010.pt"
 
 options.dataset = edict()
 options.dataset.name = "shapenet_depth"
