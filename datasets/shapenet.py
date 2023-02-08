@@ -34,7 +34,7 @@ class ShapeNet(BaseDataset):
         self.mesh_pos = mesh_pos
         self.resize_with_constant_border = shapenet_options.resize_with_constant_border
         # depth model
-        checkpoint = torch.load('datasets/preprocess/ext_models/depth_densenet.pth')
+        checkpoint = torch.load('datasets/preprocess/ext_models/depth_densenet.pth') # relative path to the depth model
         new_state_dict = OrderedDict()
         for k, v in checkpoint.items():
             name = k[7:]
@@ -75,7 +75,7 @@ class ShapeNet(BaseDataset):
 
         img = torch.from_numpy(np.transpose(img, (2, 0, 1)))
 
-        # adjust brightness, noise, blur, etc. for Ablation
+        # adjust brightness
         """adj = T.ToPILImage()
         adjT = T.ToTensor()
         img = adjT(T.functional.adjust_brightness(adj(img), brightness_factor=1.6))"""
@@ -104,6 +104,7 @@ class ShapeNet(BaseDataset):
         img_cuda = torch.from_numpy(np.transpose(img_org[:, :, :3], (2, 0, 1)))
         img_cuda = img_cuda.unsqueeze(0).cuda()
         self.model = self.model.cuda()  # having this is __init__ resulted in all predictions being zero...
+        # pass the image through the depth-model with a black background color.
         img_depth = self.model(img_cuda)[0, :, :, :]
         img_depth = img_depth.permute(1, 2, 0)
         img_depth = img_depth.detach().cpu()
@@ -113,8 +114,8 @@ class ShapeNet(BaseDataset):
         else:
             img_depth = transform.resize(img_depth, (config.IMG_SIZE, config.IMG_SIZE))
 
-        # TODO: same as img[np.where(img[:, :, 3] == 0)] = 255 before.
-        #       discard the depth values that are not from the object itself.
+        # same as img[np.where(img[:, :, 3] == 0)] = 255 before, which set the background the white.
+        # discard the depth values that are not from the object itself and set black as the background for depth.
         img_depth[np.where(img_org_size[:, :, 3] == 0)] = 0.000001
 
         img_depth = torch.from_numpy(img_depth).permute(2, 0, 1)

@@ -128,5 +128,8 @@ test-images-augmented
 test-images-augmented_depth
 test-images-background
 test-images-vanilla
+test-images-10ep
+test-images-10ep-vanilla
+test-images-30ep-depth
 test-images-transparent/*.obj
 test-images-transparent/*.gif
