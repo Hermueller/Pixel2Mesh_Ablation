@@ -148,7 +148,6 @@ class P2MLoss(nn.Module):
         #        self.options.weights.edge * edge_loss + \
         #        self.options.weights.normal * normal_loss
 
-
         loss = loss * self.options.weights.constant
 
         return loss, {
