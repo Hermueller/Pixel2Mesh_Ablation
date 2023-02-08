@@ -1,3 +1,31 @@
+# A Comparative Ablation Study Between Pixel2Mesh and Depth-Aware Pixel2Mesh
+
+The original baseline implementation of Pixel2Mesh was taken from: https://github.com/noahcao/Pixel2Mesh
+
+The report can be found under: <a href="report.pdf"><img src="https://img.shields.io/badge/PDF-Report-green"/></a>
+
+## Support for Newer CUDA Versions
+
+The following fix works for Cuda 11.8
+
+If the baseline implementation (which was made in Cuda 9.0) does not work because your Cuda version is too new, change the `external/neural_renderer` submodule in the `.gitmodules` to the following one: https://github.com/Hermueller/neural_renderer
+
+## Branches
+
+This ablation study project consists of multiple branches, each has their own additional channel as input:
+* **main**; the vanilla Pixel2Mesh implementation forked from https://github.com/noahcao/Pixel2Mesh
+* **feature-depth-densenet**; uses [Alhashim et al.](https://github.com/alinstein/Depth_estimation) as a pre-trained depth estimation model to generate an additional input channel for Pixel2Mesh.
+* **feature-depth-resnet**; uses [this model](https://github.com/wolverinn/Depth-Estimation-PyTorch) as a pre-trained depth estimation model to generate an additional input channel for Pixel2Mesh.
+* **feature-surface-normals**; uses [Bae et al.](https://github.com/baegwangbin/surface_normal_uncertainty) as a pre-trained surface normal estimation model to generate an additional input channel for Pixel2Mesh.
+
+If you want to use the ResNet depth-aware Pixel2Mesh implementation (branch: feature-depth-resnet), download the fyn_model.pt file at https://github.com/wolverinn/Depth-Estimation-PyTorch/releases/tag/v1.0 and save it as `datasets/preprocess/ext_models/fyn_model.pt`
+
+___
+
+___
+
+# README from the (forked) Baseline Project:
+
 # Pixel2Mesh
 
 This is an implementation of Pixel2Mesh in PyTorch. Besides, we also:
